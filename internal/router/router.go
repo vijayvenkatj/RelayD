@@ -2,6 +2,7 @@ package router
 
 import (
 	"log"
+	"net/http"
 
 	"github.com/vijayvenkatj/relayd/internal/upstream"
 )
@@ -21,6 +22,10 @@ func NewRouter() *Router {
 }
 func (router *Router) Load(groups map[string]*upstream.BackendGroup) {
 	router.BackendGroup = groups
+}
+
+func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	// Handle this later
 }
 
 // GetBackend gets the backend responsible for the current request
