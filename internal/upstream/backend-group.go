@@ -6,12 +6,14 @@ import (
 )
 
 type BackendGroup struct {
+	Route          string
 	Backends       []*Backend
 	requestCounter atomic.Int32
 }
 
-func NewBackendGroup(backends []*Backend) *BackendGroup {
+func NewBackendGroup(path string, backends []*Backend) *BackendGroup {
 	backendGroup := &BackendGroup{
+		Route:    path,
 		Backends: backends,
 	}
 	backendGroup.requestCounter.Store(0)

@@ -36,16 +36,16 @@ func Parse(data []byte) (*Config, error) {
 }
 
 // Get the BackendGroups from config
-func (config *Config) BackendGroups(transport *http.Transport, httpClient *http.Client) map[string]*upstream.BackendGroup {
+func (config *Config) BackendGroups(transport *http.Transport, httpClient *http.Client) []*upstream.BackendGroup {
 
-	backendGroups := make(map[string]*upstream.BackendGroup)
+	backendGroups := []*upstream.BackendGroup{}
 
 	for _, route := range config.Routes {
 
 		backends := config.Backends(route.Upstreams, transport, httpClient)
-		backendGroup := upstream.NewBackendGroup(backends)
+		backendGroup := upstream.NewBackendGroup(route.Route, backends)
 
-		backendGroups[route.Route] = backendGroup
+		backendGroups = append(backendGroups, backendGroup)
 	}
 
 	return backendGroups

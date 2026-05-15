@@ -1,43 +1,79 @@
 package router
 
 import (
+	"errors"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/vijayvenkatj/relayd/internal/upstream"
 )
 
 type Router struct {
-	BackendGroup map[string]*upstream.BackendGroup
+	BackendGroup []*upstream.BackendGroup
 }
 
 func NewRouter() *Router {
 
-	groups := make(map[string]*upstream.BackendGroup)
+	groups := []*upstream.BackendGroup{}
 	router := &Router{
 		BackendGroup: groups,
 	}
 
 	return router
 }
-func (router *Router) Load(groups map[string]*upstream.BackendGroup) {
-	router.BackendGroup = groups
+func (r *Router) Load(groups []*upstream.BackendGroup) {
+	r.BackendGroup = groups
 }
 
+var (
+	ErrRouteNotFound = errors.New("route not found")
+	ErrNoHealthyHost = errors.New("no healthy host found")
+)
+
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	// Handle this later
+
+	path := req.URL.Path
+
+	backend, err := r.GetBackend(path)
+	if err != nil {
+		if err == ErrNoHealthyHost {
+			http.Error(w, "no healthy host", http.StatusBadGateway)
+			return
+		}
+
+		http.NotFound(w, req)
+		return
+	}
+
+	backend.ReverseProxy.ServeHTTP(w, req)
 }
 
 // GetBackend gets the backend responsible for the current request
-func (router *Router) GetBackend(route string) *upstream.Backend {
+func (r *Router) GetBackend(route string) (*upstream.Backend, error) {
 
-	if _, exists := router.BackendGroup[route]; !exists {
-		log.Println("Invalid route")
-		return nil
+	var matchedRoute *upstream.BackendGroup = nil
+
+	for _, backendGroup := range r.BackendGroup {
+		if strings.HasPrefix(backendGroup.Route, route) {
+			if matchedRoute != nil && len(route) < len(matchedRoute.Route) {
+				continue
+			}
+			matchedRoute = backendGroup
+		}
 	}
 
-	backendGroup := router.BackendGroup[route]
-	backend := backendGroup.RoundRobin()
+	if matchedRoute == nil {
+		log.Println("no matching route:", route)
+		return nil, ErrRouteNotFound
+	}
 
-	return backend
+	backend := matchedRoute.RoundRobin()
+
+	if backend == nil {
+		log.Println("no healthy upstreams for route:", matchedRoute.Route)
+		return nil, ErrNoHealthyHost
+	}
+
+	return backend, nil
 }
