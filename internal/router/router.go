@@ -56,7 +56,7 @@ func (r *Router) GetBackend(route string) (*upstream.Backend, error) {
 
 	for _, backendGroup := range r.BackendGroup {
 		if strings.HasPrefix(backendGroup.Route, route) {
-			if matchedRoute != nil && len(route) < len(matchedRoute.Route) {
+			if matchedRoute != nil && len(backendGroup.Route) > len(matchedRoute.Route) {
 				continue
 			}
 			matchedRoute = backendGroup
