@@ -4,7 +4,6 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"strings"
 
 	"github.com/vijayvenkatj/relayd/internal/upstream"
 )
@@ -55,8 +54,8 @@ func (r *Router) GetBackend(route string) (*upstream.Backend, error) {
 	var matchedRoute *upstream.BackendGroup = nil
 
 	for _, backendGroup := range r.BackendGroup {
-		if strings.HasPrefix(backendGroup.Route, route) {
-			if matchedRoute != nil && len(backendGroup.Route) > len(matchedRoute.Route) {
+		if matchPath(route, backendGroup.Route) {
+			if matchedRoute != nil && len(backendGroup.Route) < len(matchedRoute.Route) {
 				continue
 			}
 			matchedRoute = backendGroup
