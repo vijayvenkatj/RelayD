@@ -23,20 +23,42 @@ func NewBackendGroup(path string, backends []*Backend) *BackendGroup {
 
 func (group *BackendGroup) RoundRobin() *Backend {
 
-	if len(group.Backends) == 0 {
+	backendCount := len(group.Backends)
+	if backendCount == 0 {
 		return nil
 	}
 
-	next := group.requestCounter.Add(1)
-	idx := int(next) % len(group.Backends)
-	return group.Backends[idx]
+	for i := 0; i < backendCount; i++ {
+
+		next := group.requestCounter.Add(1)
+		idx := int(next % int32(backendCount))
+		backend := group.Backends[idx]
+
+		if backend.Alive.Load() {
+			return backend
+		}
+	}
+
+	return nil
 }
 
 func (group *BackendGroup) Random() *Backend {
-	if len(group.Backends) == 0 {
+
+	backendCount := len(group.Backends)
+	if backendCount == 0 {
 		return nil
 	}
 
-	idx := rand.IntN(len(group.Backends))
-	return group.Backends[idx]
+	for i := 0; i < backendCount; i++ {
+
+		group.requestCounter.Add(1)
+		idx := rand.IntN(len(group.Backends))
+		backend := group.Backends[idx]
+
+		if backend.Alive.Load() {
+			return backend
+		}
+	}
+
+	return nil
 }
