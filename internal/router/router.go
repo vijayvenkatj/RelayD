@@ -45,6 +45,9 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	backend.Requests.Add(1)
+	defer backend.Requests.Add(-1)
+	
 	backend.ReverseProxy.ServeHTTP(w, req)
 }
 

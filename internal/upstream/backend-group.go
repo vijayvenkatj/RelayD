@@ -6,8 +6,9 @@ import (
 )
 
 type BackendGroup struct {
-	Route          string
-	Backends       []*Backend
+	Route    string
+	Backends []*Backend
+
 	requestCounter atomic.Int32
 }
 
@@ -34,7 +35,7 @@ func (group *BackendGroup) RoundRobin() *Backend {
 		idx := int(next % int32(backendCount))
 		backend := group.Backends[idx]
 
-		if backend.Alive.Load() {
+		if backend.Alive.Load() && !backend.Closed.Load() {
 			return backend
 		}
 	}
@@ -55,7 +56,7 @@ func (group *BackendGroup) Random() *Backend {
 		idx := rand.IntN(len(group.Backends))
 		backend := group.Backends[idx]
 
-		if backend.Alive.Load() {
+		if backend.Alive.Load() && !backend.Closed.Load() {
 			return backend
 		}
 	}

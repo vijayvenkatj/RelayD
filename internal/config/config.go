@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"net/url"
@@ -36,13 +37,13 @@ func Parse(data []byte) (*Config, error) {
 }
 
 // Get the BackendGroups from config
-func (config *Config) BackendGroups(transport *http.Transport, httpClient *http.Client) []*upstream.BackendGroup {
+func (config *Config) BackendGroups(ctx context.Context, transport *http.Transport, httpClient *http.Client) []*upstream.BackendGroup {
 
 	backendGroups := []*upstream.BackendGroup{}
 
 	for _, route := range config.Routes {
 
-		backends := config.Backends(route.Upstreams, transport, httpClient)
+		backends := config.Backends(ctx, route.Upstreams, transport, httpClient)
 		backendGroup := upstream.NewBackendGroup(route.Route, backends)
 
 		backendGroups = append(backendGroups, backendGroup)
@@ -52,7 +53,7 @@ func (config *Config) BackendGroups(transport *http.Transport, httpClient *http.
 }
 
 // Get the Backends from Config and Inject HTTP client.
-func (config *Config) Backends(upstreams []string, transport *http.Transport, httpClient *http.Client) []*upstream.Backend {
+func (config *Config) Backends(ctx context.Context, upstreams []string, transport *http.Transport, httpClient *http.Client) []*upstream.Backend {
 	backends := []*upstream.Backend{}
 	for _, host := range upstreams {
 
@@ -64,7 +65,7 @@ func (config *Config) Backends(upstreams []string, transport *http.Transport, ht
 
 		reverseProxy := proxy.NewReverseProxy(hostUrl, transport)
 
-		backend := upstream.NewBackend(hostUrl, reverseProxy, httpClient)
+		backend := upstream.NewBackend(ctx, hostUrl, reverseProxy, httpClient)
 		backends = append(backends, backend)
 	}
 
