@@ -62,3 +62,24 @@ go run ./cmd/relayd
 ```/dev/null/build.sh#L1-1
 go build ./cmd/relayd
 ```
+
+## Minimal benchmark
+```/dev/null/bench.sh#L1-1
+go test -run '^$' -bench='Benchmark(GetBackend|ServeHTTP)$' -benchmem ./internal/router
+go test -run '^$' -bench=BenchmarkRoundRobin -benchmem ./internal/upstream
+go test -run '^$' -bench=BenchmarkTransportSharing -benchmem -benchtime=10s -count=3 ./internal/proxy
+```
+
+These benchmarks measure route lookup (`GetBackend`), router+proxy request dispatch (`ServeHTTP`), and load balancer selection (`RoundRobin`).
+Use `ns/op`, `B/op`, and `allocs/op` from the output as the observations in your post.
+
+### Transport sharing result (interpretable summary)
+
+From `BenchmarkTransportSharing` (`-benchtime=10s -count=3`):
+
+| Mode | Avg time/op | Avg upstream_conns/op |
+| --- | ---: | ---: |
+| Shared transport | 19.15 us/op | 0.0000174 |
+| New transport per proxy | 22.96 us/op | 0.0001205 |
+
+Result: sharing one `http.Transport` across reverse proxies is about **20% faster** and creates about **6.9x fewer new upstream connections** under load.
